@@ -1,9 +1,9 @@
-from enum import Enum, unique
-
 from sqlalchemy import (
     Column, Date, Enum as PgEnum, ForeignKey, ForeignKeyConstraint, Integer,
     MetaData, String, Table, UniqueConstraint,
 )
+
+from market.api.shoptype import ShopUnitType
 
 
 convention = {
@@ -20,45 +20,37 @@ convention = {
 metadata = MetaData(naming_convention=convention)
 
 
-@unique
-class Gender(Enum):
-    female = 'female'
-    male = 'male'
-
-
 imports_table = Table(
     'imports',
     metadata,
-    Column('import_id', Integer, primary_key=True)
+    Column('import_id', Integer, primary_key=True),
+    Column('updateDate', Date, nullable=False)
 )
 
-citizens_table = Table(
-    'citizens',
+offer_and_category_table = Table(
+    'offer_and_category',
     metadata,
     Column('import_id', Integer, ForeignKey('imports.import_id'),
            primary_key=True),
-    Column('citizen_id', Integer, primary_key=True),
-    Column('town', String, nullable=False, index=True),
-    Column('street', String, nullable=False),
-    Column('building', String, nullable=False),
-    Column('apartment', Integer, nullable=False),
+    Column('id', Integer, primary_key=True),
     Column('name', String, nullable=False),
-    Column('birth_date', Date, nullable=False),
-    Column('gender', PgEnum(Gender, name='gender'), nullable=False),
+    Column('parentId', String, nullable=True),
+    Column('price', Integer, default=0),
+    Column('type', PgEnum(ShopUnitType, name='type'), nullable=False),
 )
 
-relations_table = Table(
-    'relations',
+child_parent_table = Table(
+    'child-parent',
     metadata,
     Column('import_id', Integer, primary_key=True),
-    Column('citizen_id', Integer, primary_key=True),
-    Column('relative_id', Integer, primary_key=True),
+    Column('child', String, primary_key=True),
+    Column('parent', String, primary_key=True),
     ForeignKeyConstraint(
-        ('import_id', 'citizen_id'),
-        ('citizens.import_id', 'citizens.citizen_id')
+        ('import_id', 'child'),
+        ('offer_and_category.import_id', 'offer_and_category.id')
     ),
     ForeignKeyConstraint(
-        ('import_id', 'relative_id'),
-        ('citizens.import_id', 'citizens.citizen_id')
+        ('import_id', 'parent'),
+        ('offer_and_category.import_id', 'offer_and_category.parentId')
     ),
 )
