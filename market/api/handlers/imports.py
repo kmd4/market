@@ -19,19 +19,19 @@ class ImportsView(BaseView):
     # частями.
     # Максимальное кол-во строк для вставки можно рассчитать как отношение
     # MAX_QUERY_ARGS к кол-ву вставляемых в таблицу столбцов.
-    MAX_CITIZENS_PER_INSERT = MAX_QUERY_ARGS // len(offer_and_category_table.columns)
+    MAX_ITEMS_PER_INSERT = MAX_QUERY_ARGS // len(offer_and_category_table.columns)
     MAX_RELATIONS_PER_INSERT = MAX_QUERY_ARGS // len(child_parent_table.columns)
 
 
     @classmethod
-    def make_offers_table_rows(cls, offers, import_id) -> Generator:
+    def make_offers_table_rows(cls, offers, date) -> Generator:
         """
         Генерирует данные готовые для вставки в таблицу citizens (с ключом
         import_id и без ключа relatives).
         """
         def generate_dict(id, name, parentId, price, type):
             return {
-                    'import_id': import_id,
+                    'date': date,
                     'id': id,
                     'name': name,
                     'parentId': parentId,
@@ -62,13 +62,27 @@ class ImportsView(BaseView):
         """
         Генерирует данные готовые для вставки в таблицу relations.
         """
-        for object in items:
-            for child in object['child']:
-                yield {
-                    'import_id': import_id,
-                    'child': object['citizen_id'],
-                    'parent': relative_id,
+        def generate_dict(child, parent):
+            return {
+                'import_id': import_id,
+                'child': child,
+                'parent': parent,
                 }
+
+        def generate_rows(sl, sp=[]):
+            if sl.get('type') == 'OFFER' and sl.get('children') == None:
+                sp.append(generate_dict(sl.get('id'), sl.get('parentId')))
+            if sl.get('type') == 'CATEGORY' and sl.get('children') == None:
+                sp.append(generate_dict(sl.get('id'), sl.get('parentId')))
+            if sl.get('type') == 'CATEGORY' and sl.get('children') != None:
+                sp.append(generate_dict(sl.get('id'), sl.get('parentId')))
+                for i in range(len(sl.get('children'))):
+                    generate_rows(sl.get('children')[i], sp)
+            return sp
+
+        for offer in generate_rows(items):
+            yield offer
+
 
     @docs(summary='Добавить выгрузку с информацией о жителях')
     @request_schema(ImportSchema())
@@ -84,9 +98,10 @@ class ImportsView(BaseView):
             # Генераторы make_citizens_table_rows и make_relations_table_rows
             # лениво генерируют данные, готовые для вставки в таблицы citizens
             # и relations на основе данных отправленных клиентом.
-            citizens = self.request['data']['citizens']
-            citizen_rows = self.make_offers_table_rows(citizens, import_id)
-            relation_rows = self.make_relations_table_rows(citizens, import_id)
+            items = self.request['data']['items']
+            date = self.request['data']['updateDate']
+            items_rows = self.make_offers_table_rows(items, date)
+            relation_rows = self.make_relations_table_rows(items, import_id)
 
             # Чтобы уложиться в ограничение кол-ва аргументов в запросе к
             # postgres, а также сэкономить память и избежать создания полной
@@ -94,16 +109,16 @@ class ImportsView(BaseView):
             # генератор chunk_list.
             # Он будет получать из генератора make_citizens_table_rows только
             # необходимый для 1 запроса объем данных.
-            chunked_citizen_rows = chunk_list(citizen_rows,
-                                              self.MAX_CITIZENS_PER_INSERT)
+            chunked_items_rows = chunk_list(items_rows,
+                                            self.MAX_ITEMS_PER_INSERT)
             chunked_relation_rows = chunk_list(relation_rows,
                                                self.MAX_RELATIONS_PER_INSERT)
 
-            query = citizens_table.insert()
-            for chunk in chunked_citizen_rows:
+            query = offer_and_category_table.insert()
+            for chunk in chunked_items_rows:
                 await conn.execute(query.values(list(chunk)))
 
-            query = relations_table.insert()
+            query = child_parent_table.insert()
             for chunk in chunked_relation_rows:
                 await conn.execute(query.values(list(chunk)))
 
