@@ -20,21 +20,15 @@ convention = {
 metadata = MetaData(naming_convention=convention)
 
 
-imports_table = Table(
-    'imports',
-    metadata,
-    Column('import_id', Integer, primary_key=True),
-    Column('updateDate', Date, nullable=False)
-)
+
 
 offer_and_category_table = Table(
     'offer_and_category',
     metadata,
-    Column('import_id', Integer, ForeignKey('imports.import_id'),
-           primary_key=True),
     Column('id', Integer, primary_key=True),
     Column('name', String, nullable=False),
     Column('parentId', String, nullable=True),
+    Column('date', Date, nullable=False),
     Column('price', Integer, default=0),
     Column('type', PgEnum(ShopUnitType, name='type'), nullable=False)
 )
@@ -42,15 +36,6 @@ offer_and_category_table = Table(
 child_parent_table = Table(
     'child-parent',
     metadata,
-    Column('import_id', Integer, primary_key=True),
-    Column('child', String, primary_key=True),
-    Column('parent', String, primary_key=True),
-    ForeignKeyConstraint(
-        ('import_id', 'child'),
-        ('offer_and_category.import_id', 'offer_and_category.id')
-    ),
-    ForeignKeyConstraint(
-        ('import_id', 'parent'),
-        ('offer_and_category.import_id', 'offer_and_category.parentId')
-    ),
+    Column('child', String, ForeignKey('offer_and_category.id')),
+    Column('parent', String, ForeignKey('offer_and_category.parentId'))
 )

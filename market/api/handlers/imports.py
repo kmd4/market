@@ -6,7 +6,7 @@ from aiohttp_apispec import docs, request_schema, response_schema
 from aiomisc import chunk_list
 
 from market.api.scheme import ImportResponseSchema, ImportSchema
-from market.db.scheme import imports_table, offer_and_category_table, child_parent_table
+from market.db.scheme import  offer_and_category_table, child_parent_table
 from market.utils.pg import MAX_QUERY_ARGS
 
 from .base import BaseView
@@ -58,13 +58,12 @@ class ImportsView(BaseView):
 
 
     @classmethod
-    def make_relations_table_rows(cls, items, import_id) -> Generator:
+    def make_relations_table_rows(cls, items) -> Generator:
         """
         Генерирует данные готовые для вставки в таблицу relations.
         """
         def generate_dict(child, parent):
             return {
-                'import_id': import_id,
                 'child': child,
                 'parent': parent,
                 }
@@ -91,9 +90,6 @@ class ImportsView(BaseView):
         # Транзакция требуется чтобы в случае ошибки (или отключения клиента,
         # не дождавшегося ответа) откатить частично добавленные изменения.
         async with self.pg.transaction() as conn:
-            # Создаем выгрузку
-            query = imports_table.insert().returning(imports_table.c.import_id)
-            import_id = await conn.fetchval(query)
 
             # Генераторы make_citizens_table_rows и make_relations_table_rows
             # лениво генерируют данные, готовые для вставки в таблицы citizens
@@ -101,7 +97,7 @@ class ImportsView(BaseView):
             items = self.request['data']['items']
             date = self.request['data']['updateDate']
             items_rows = self.make_offers_table_rows(items, date)
-            relation_rows = self.make_relations_table_rows(items, import_id)
+            relation_rows = self.make_relations_table_rows(items)
 
             # Чтобы уложиться в ограничение кол-ва аргументов в запросе к
             # postgres, а также сэкономить память и избежать создания полной
@@ -122,5 +118,5 @@ class ImportsView(BaseView):
             for chunk in chunked_relation_rows:
                 await conn.execute(query.values(list(chunk)))
 
-        return Response(body={'data': {'import_id': import_id}},
+        return Response(body={'data': {'date': date}},
                         status=HTTPStatus.CREATED)
