@@ -7,7 +7,8 @@ from marshmallow.validate import Length, OneOf, Range
 from market.api.shoptype import ShopUnitType
 
 
-DATE_FORMAT = '%D.%M.%YT%h:%M:%S.%Z'
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+
 
 
 # class PatchCitizenSchema(Schema):
@@ -42,7 +43,7 @@ class OfferAndCategorySchema(Schema):
 
 
 class ImportSchema(Schema):
-    goods = Nested(OfferAndCategorySchema, many=True, required=True,
+    items = Nested(OfferAndCategorySchema, many=True, required=True,
                       validate=Length(max=10000))
     date = Date(format=DATE_FORMAT, required=True)
 
@@ -70,7 +71,7 @@ class ImportSchema(Schema):
                     400, 'offer can`t has child'
                 )
 
-!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!
 class ImportIdSchema(Schema):
     import_id = Int(strict=True, required=True)
 
@@ -85,25 +86,6 @@ class CitizensResponseSchema(Schema):
 
 class PatchCitizenResponseSchema(Schema):
     data = Nested(OfferAndCategorySchema(), required=True)
-
-
-class PresentsSchema(Schema):
-    citizen_id = Int(validate=Range(min=0), strict=True, required=True)
-    presents = Int(validate=Range(min=0), strict=True, required=True)
-
-
-# Схема, содержащая кол-во подарков, которое купят жители по месяцам.
-# Чтобы не указывать вручную 12 полей класс можно сгенерировать.
-CitizenPresentsByMonthSchema = type(
-    'CitizenPresentsByMonthSchema', (Schema,),
-    {
-        str(i): Nested(PresentsSchema(many=True), required=True)
-        for i in range(1, 13)
-    }
-)
-
-
-
 
 
 

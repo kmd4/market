@@ -36,7 +36,7 @@ offer_and_category_table = Table(
     Column('name', String, nullable=False),
     Column('parentId', String, nullable=True),
     Column('price', Integer, default=0),
-    Column('type', PgEnum(ShopUnitType, name='type'), nullable=False),
+    Column('type', PgEnum(ShopUnitType, name='type'), nullable=False)
 )
 
 child_parent_table = Table(

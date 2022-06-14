@@ -15,7 +15,7 @@ from sqlalchemy.sql import Select
 
 
 CENSORED = '***'
-DEFAULT_PG_URL = 'postgresql://user:hackme@localhost/market'
+DEFAULT_PG_URL = 'postgresql://user:hackme@localhost/analyzer'
 MAX_QUERY_ARGS = 32767
 MAX_INTEGER = 2147483647
 
