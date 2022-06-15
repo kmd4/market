@@ -9,7 +9,7 @@ from aiohttp.web_middlewares import middleware
 from aiohttp.web_request import Request
 from marshmallow import ValidationError
 
-from analyzer.api.payloads import JsonPayload
+from market.api.json_pay_loads  import JsonPayload
 
 
 log = logging.getLogger(__name__)

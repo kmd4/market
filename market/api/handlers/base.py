@@ -3,7 +3,6 @@ from aiohttp.web_urldispatcher import View
 from asyncpgsa import PG
 from sqlalchemy import exists, select
 
-from market.db.scheme import imports_table
 
 
 class BaseView(View):
